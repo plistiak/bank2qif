@@ -126,18 +126,12 @@ class UnicreditImport(BankImporter):
                 y, m, d = row[3].split('-')
                 tdate = date(int(y), int(m), int(d))
                 tamount = float(normalize_num(row[1]))
-                bank_no = row[5]
-                bank_name = "%s %s" % (normalize_field(row[6]),
-                                       normalize_field(row[7]))
-                bank_name = bank_name.strip()
                 account_number = normalize_field(row[8])
                 account_name = normalize_field(row[9])
                 tdest = None
                 if account_number != "":
-                    tdest = "%s: %s/%s %s" % (bank_name,
-                                              account_number,
-                                              bank_no,
-                                              account_name)
+                    tdest = "%s %s" % (account_number,
+                                       account_name)
 
                 t_type = row[13].strip()
                 if t_type == u"PLATBA PLATEBNÍ KARTOU" and \
@@ -162,6 +156,38 @@ class UnicreditImport(BankImporter):
                                                          destination=tdest))
         return self.transactions
 
+class ZunoImport(BankImporter):
+    source = "zuno"
+
+    def bank_import(self):
+        items = False
+        for row in unicode_csv_reader(self.inputreader.readlines(),
+                                      delimiter=';'):
+            if not items and len(row) > 0 and row[0] == u"Dátum transakcie:":
+                items = True
+                continue
+            if items:
+                if len(row) <= 1:
+                    break
+
+                d, m, y = row[0].split('.')
+                tdate = date(int(y), int(m), int(d))
+                tamount = float(normalize_num(row[6]))
+
+                account_number = normalize_field(row[3])
+		bank_code = normalize_field(row[4])
+		tdest = None
+
+                if account_number != "":
+			tdest = "%s/%s" % (account_number, bank_code)
+			tdest = tdest.strip()
+                
+		tmessage = normalize_field(row[5])
+                self.transactions.append(TransactionData(tdate,
+                                                         tamount,
+                                                         message=tmessage,
+                                                         destination=tdest))
+        return self.transactions
 
 def write_qif(outfile, transactions):
     with open(outfile, 'w') as output:
@@ -182,7 +208,7 @@ def write_qif(outfile, transactions):
 
 
 if __name__ == "__main__":
-    importers = [MBankImport, UnicreditImport]
+    importers = [MBankImport, UnicreditImport, ZunoImport]
     sources = []
     for importer in importers:
         sources.append(importer.source)
