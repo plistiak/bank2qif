@@ -126,12 +126,18 @@ class UnicreditImport(BankImporter):
                 y, m, d = row[3].split('-')
                 tdate = date(int(y), int(m), int(d))
                 tamount = float(normalize_num(row[1]))
+                bank_no = row[5]
+                bank_name = "%s %s" % (normalize_field(row[6]),
+                                       normalize_field(row[7]))
+                bank_name = bank_name.strip()
                 account_number = normalize_field(row[8])
                 account_name = normalize_field(row[9])
                 tdest = None
                 if account_number != "":
-                    tdest = "%s %s" % (account_number,
-                                       account_name)
+                    tdest = "%s: %s/%s %s" % (bank_name,
+                                              account_number,
+                                              bank_no,
+                                              account_name)
 
                 t_type = row[13].strip()
                 if t_type == u"PLATBA PLATEBNÍ KARTOU" and \
